@@ -1,0 +1,22 @@
+{
+  "email": {
+    "subject": "AutoSec Test"
+  },
+  "header": {
+    "title": "AutoSec Test",
+    "text": "Hey IEEE! This is a test of the Automated Secretary (AutoSec) system. Here are this week's announcements."
+  },
+  "footer": {
+    "text": "Enjoy your day!\nECEs can do everything.",
+    "images": [
+      {
+        "image": "insta.png",
+        "link": "https://www.example.com"
+      },
+      {
+        "image": "linkedin.png",
+        "link": "https://www.example.com"
+      }
+    ]
+  }
+}

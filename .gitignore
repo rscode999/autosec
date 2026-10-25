@@ -1,0 +1,4 @@
+.venv
+__pycache__/
+#  auth/
+images_slack/
