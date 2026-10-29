@@ -6,7 +6,7 @@ import html
 import re
 import sys
 
-from slack import IMAGE_PATH as IMAGES_DIRECTORY
+from slack import SLACK_IMAGE_PATH
 
 CURRENT_DIRECTORY = Path.cwd()
 
@@ -20,6 +20,40 @@ DIVIDER = """
         margin: 20px 0;
     ">
 """
+
+
+def generate_image(image_path: Path, mail: win32.CDispatch, width: int | str = 300, height: int | str = 'auto'):
+    assert type(width)==int or (type(width)==str and width=='auto')
+    assert type(height)==int or (type(height)==str and height=='auto')
+
+    html_string = ""
+
+    image_filename = image_path.name
+    content_id = image_filename
+
+    # Ensure the image exists before attaching it
+    if not image_path.is_file():
+        raise FileNotFoundError(f"Image not found: {image_path}")
+
+    # Add attachment to mail object
+    attachment = mail.Attachments.Add(str(image_path), 1, 0)
+
+    # Assign a Content-ID to the attachment
+    MAPI_PROPERTY_CID = (
+        "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
+    )
+    attachment.PropertyAccessor.SetProperty(
+        MAPI_PROPERTY_CID, content_id
+    )
+
+    # Add image to HTML output
+    html_string += f"""<img src="cid:{html.escape(content_id, quote=True)}"
+    alt="{html.escape(image_filename, quote=True)}"
+    width="{width}"
+    style="width:{width}px; height:{height}; display:block;">
+    <br><br>"""
+
+    return html_string
 
 
 def generate_header(header_dict: dict) -> str:
@@ -107,31 +141,7 @@ def generate_announcement(announcement_dict: dict, mail: win32.CDispatch) -> str
 
     # Add all the images
     for image in announcement_dict["images"]:
-        image_path = IMAGES_DIRECTORY / image
-        image_filename = image_path.name
-        content_id = image_filename
-
-        # Ensure the image exists before attaching it
-        if not image_path.is_file():
-            raise FileNotFoundError(f"Image not found: {image_path}")
-
-        # Add attachment to mail object
-        attachment = mail.Attachments.Add(str(image_path), 1, 0)
-
-        # Assign a Content-ID to the attachment
-        MAPI_PROPERTY_CID = (
-            "http://schemas.microsoft.com/mapi/proptag/0x3712001F"
-        )
-        attachment.PropertyAccessor.SetProperty(
-            MAPI_PROPERTY_CID, content_id
-        )
-
-        # Add image to HTML output
-        announcement_html += f"""<img src="cid:{html.escape(content_id, quote=True)}"
-        alt="{html.escape(image_filename, quote=True)}"
-        width="300"
-        style="width:300px; height:auto; display:block;">
-        <br><br>"""
+        announcement_html += generate_image(SLACK_IMAGE_PATH / image, mail)
 
     return announcement_html
 
@@ -190,6 +200,9 @@ def main(args: list[str]) -> None:
     mail_html = "<html>\n<body>"
 
     mail_html += generate_header(data["header"])
+
+    mail_html += DIVIDER
+    mail_html += generate_image(CURRENT_DIRECTORY / Path("images/events.png"), mail, width=450)
     mail_html += DIVIDER
 
     for announcement in data["announcements"]:

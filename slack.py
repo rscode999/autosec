@@ -10,7 +10,7 @@ from slack_sdk.errors import SlackApiError
 
 AUTH_FILE = Path.cwd() / Path("auth/tokens.txt")
 
-IMAGE_PATH = Path.cwd() / "images_slack"
+SLACK_IMAGE_PATH = Path.cwd() / "images_slack"
 OUTPUT_PATH = Path.cwd() / Path("content") / "announcements.json"
 
 CUTOFF_TIMESTAMP = (
@@ -23,7 +23,7 @@ CUTOFF_TIMESTAMP = (
 
 
 
-IMAGE_PATH.mkdir(parents=True, exist_ok=True)
+SLACK_IMAGE_PATH.mkdir(parents=True, exist_ok=True)
 
 
 
@@ -109,7 +109,7 @@ def download_images(message, bot_token: str, verbose: bool = False):
             file_info.get("id", str(message.get("ts", "image")))
         )
         filename = f"{file_id}_{original_name}"
-        destination = IMAGE_PATH / filename
+        destination = SLACK_IMAGE_PATH / filename
 
         if not destination.exists():
             try:
@@ -166,6 +166,10 @@ def main(args: list[str]):
     channel_id = args[1]
     bot_token = args[2]
 
+    if not channel_id.startswith("C"):
+        raise Exception(f'Channel ID ({channel_id}) is invalid')
+    if not bot_token.startswith("xoxb-"):
+        raise Exception(f'Bot token ({bot_token}) is invalid')
 
     client = WebClient(token=bot_token)
 
@@ -199,13 +203,15 @@ def main(args: list[str]):
         if verbose:
             print(f"Processed {len(announcements)} messages.")
             print(f"JSON saved to: {OUTPUT_PATH}")
-            print(f"Images saved to: {IMAGE_PATH.resolve()}")
+            print(f"Images saved to: {SLACK_IMAGE_PATH.resolve()}")
 
     except SlackApiError as exc:
         if verbose:
             print("Slack API error:", exc.response.get("error"))
             print("Needed scope:", exc.response.get("needed"))
             print("Granted scopes:", exc.response.get("provided"))
+
+        raise exc
 
 
 if __name__ == '__main__':

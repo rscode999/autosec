@@ -1,0 +1,1 @@
+Required packages: pywin32, requests, slack_sdk
