@@ -35,11 +35,12 @@ def get_all_pages(method, **kwargs):
             if message.get("type") != "message":
                 continue
 
-            # Exclude channel join/leave events.
-            if message.get("subtype") in {
-                "channel_join",
-                "channel_leave",
-            }:
+            # Only accept standard user messages and /me messages.
+            if message.get("subtype") not in (None, "me_message"):
+                continue
+
+            # Exclude messages without a user ID or originating from bots.
+            if not message.get("user") or message.get("bot_id"):
                 continue
 
             # Exclude thread replies.
@@ -52,6 +53,10 @@ def get_all_pages(method, **kwargs):
             # Keep messages from the last seven days.
             timestamp = message.get("ts")
             if not timestamp or float(timestamp) < CUTOFF_TIMESTAMP:
+                continue
+
+            # Exclude messages starting with "::"
+            if message.get("text", "").strip().startswith("::"):
                 continue
 
             yield message

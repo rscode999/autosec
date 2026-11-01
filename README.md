@@ -2,6 +2,17 @@
 
 Automatically scans a Slack channel for announcements, converts the announcements into a listserv email, and sends the email.
 
+## Input and Output Format
+
+### Slack Messages
+- The first line of each message is the announcement title
+- Any lines after become the announcement body
+- Any images attached to the message become the announcement's posters
+    - Images attached in separate messages are put in separate announcements
+
+### Email
+- Contains: header, list of announcements, footer with linked images
+
 
 ## Setup Instructions
 
@@ -11,7 +22,7 @@ AutoSec has been tested on Python 3.15.
 
 ### Python Package Installation
 
-Create a virtual environment in the *project root directory*:
+Create a virtual environment called `.venv` in the *project root directory* (the virtual environment mmust be called ".venv"):
 ```
 python -m venv .venv
 ```
@@ -90,10 +101,11 @@ Warnings are printed in yellow. Fatal errors are printed in red.
 
 On a successful run, the finished email will have been sent to the intended recipient, and will not print anything unless the `-v` flag is used.
 
-To remove automatically generated announcements from the email content file, run the cleaning script from the project root directory:
+To remove automatically generated announcements and Python caches from the email content file, run the cleaning script from the project root directory:
 ```
 python clean.py
 ```
+
 
 ## File Structure
 

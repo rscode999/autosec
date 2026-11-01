@@ -1,6 +1,8 @@
 import json 
+import shutil
+from pathlib import Path
 
-from autosec_constants import ANNOUNCEMENTS_FILE, EMAIL_CONTENT_FILE
+from autosec_constants import ANNOUNCEMENTS_FILE, EMAIL_CONTENT_FILE, ROOT_DIRECTORY
 
 def main():
     # load email contents
@@ -23,6 +25,9 @@ def main():
     # delete automatically generated announcements file
     ANNOUNCEMENTS_FILE.unlink(missing_ok=True)
 
+    # delete pycache
+    shutil.rmtree(str(ROOT_DIRECTORY / '__pycache__'))
+    shutil.rmtree(str(ROOT_DIRECTORY / '.venv/Lib/site-packages/__pycache__'))
 
 
 if __name__ == '__main__':
