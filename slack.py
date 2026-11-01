@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 import requests
@@ -8,22 +7,9 @@ import sys
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-AUTH_FILE = Path.cwd() / Path("auth/tokens.txt")
+from autosec_constants import *
 
-SLACK_IMAGE_PATH = Path.cwd() / "images_slack"
-OUTPUT_PATH = Path.cwd() / Path("content") / "announcements.json"
-
-CUTOFF_TIMESTAMP = (
-    datetime.now(timezone.utc) - timedelta(days=7)
-).timestamp()
-'''
-1 week from today's date
-'''
-
-
-
-
-SLACK_IMAGE_PATH.mkdir(parents=True, exist_ok=True)
+from autosec_colors import print_color, RED, YELLOW
 
 
 
@@ -73,15 +59,16 @@ def get_all_pages(method, **kwargs):
 
 
 
-def safe_filename(name):
+def safe_filename(name: str):
     """Prevent unsafe path characters in downloaded filenames."""
     name = Path(name or "image").name
     return re.sub(r"[^A-Za-z0-9._-]", "_", name)
 
 
 
-def download_images(message, bot_token: str, verbose: bool = False):
+def download_images(message, bot_token: str, verbose: bool = False) -> list[str]:
     """Download Slack-uploaded image files and return their filenames."""
+
     filenames = []
 
     for file_info in message.get("files", []):
@@ -96,8 +83,9 @@ def download_images(message, bot_token: str, verbose: bool = False):
         )
 
         if not url:
-            print(f"Skipping image without download URL: "
-                  f"{file_info.get('name', 'unknown')}")
+            if verbose:
+                print(f"Skipping image without download URL: "
+                    f"{file_info.get('name', 'unknown')}")
             continue
 
         original_name = safe_filename(
@@ -109,7 +97,7 @@ def download_images(message, bot_token: str, verbose: bool = False):
             file_info.get("id", str(message.get("ts", "image")))
         )
         filename = f"{file_id}_{original_name}"
-        destination = SLACK_IMAGE_PATH / filename
+        destination = SLACK_IMAGE_DIRECTORY / filename
 
         if not destination.exists():
             try:
@@ -127,7 +115,8 @@ def download_images(message, bot_token: str, verbose: bool = False):
                 if not response.headers.get(
                     "Content-Type", ""
                 ).startswith("image/"):
-                    print(f"Skipping non-image response: {filename}")
+                    if verbose:
+                        print(f"Skipping non-image response: {filename}")
                     continue
 
                 destination.write_bytes(response.content)
@@ -135,7 +124,7 @@ def download_images(message, bot_token: str, verbose: bool = False):
                     print(f"Downloaded: {destination}")
 
             except requests.RequestException as exc:
-                print(f"Failed to download {filename}: {exc}")
+                print_color(f"Failed to download {filename}: {exc}", YELLOW)
                 continue
 
         filenames.append(filename)
@@ -160,16 +149,27 @@ def make_announcement(message, bot_token: str):
 
 
 def main(args: list[str]):
+    '''
+    Main function
 
-    verbose = False
+    args[1] = channel ID, args[2] = bot token, args[3] (optional, default=False) = verbose option
+    '''
 
+    SLACK_IMAGE_DIRECTORY.mkdir(parents=True, exist_ok=True)
+    if len(args) < 3:
+        print_color(f'Usage for {__file__}: python {__file__} <Slack channel ID> <bot token> <verbose (optional, default=False)>', RED)
+        sys.exit(1)
+    
     channel_id = args[1]
     bot_token = args[2]
+    verbose = (False if len(args)<4 else bool(args[3]))
 
     if not channel_id.startswith("C"):
-        raise Exception(f'Channel ID ({channel_id}) is invalid')
+        print_color(f'Channel ID ({channel_id}) is invalid', RED)
+        sys.exit(1)
     if not bot_token.startswith("xoxb-"):
-        raise Exception(f'Bot token ({bot_token}) is invalid')
+        print_color(f'Bot token ({bot_token}) is invalid', RED)
+        sys.exit(1)
 
     client = WebClient(token=bot_token)
 
@@ -195,23 +195,22 @@ def main(args: list[str]):
             for message in messages
         ]
 
+        # Write announcements to output file
         output = {"announcements": announcements}
-
-        with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
+        with open(ANNOUNCEMENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=2, ensure_ascii=False)
 
         if verbose:
             print(f"Processed {len(announcements)} messages.")
-            print(f"JSON saved to: {OUTPUT_PATH}")
-            print(f"Images saved to: {SLACK_IMAGE_PATH.resolve()}")
+            print(f"JSON saved to: {ANNOUNCEMENTS_FILE}")
+            print(f"Images saved to: {SLACK_IMAGE_DIRECTORY.resolve()}\n")
 
     except SlackApiError as exc:
-        if verbose:
-            print("Slack API error:", exc.response.get("error"))
-            print("Needed scope:", exc.response.get("needed"))
-            print("Granted scopes:", exc.response.get("provided"))
-
-        raise exc
+        print_color("Slack API error:", exc.response.get("error"), RED)
+        print_color("    Needed scope:", exc.response.get("needed"), RED)
+        print_color("    Granted scopes:", exc.response.get("provided"), RED)
+        print_color("    Bot token used: ", RED)
+        sys.exit(1)
 
 
 if __name__ == '__main__':

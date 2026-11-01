@@ -1,3 +1,0 @@
-<Channel ID with announcements>
-<Bot's token>
-<Email to send to>

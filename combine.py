@@ -1,29 +1,32 @@
 import json 
-from pathlib import Path
-import sys
+import sys 
 
-ANNOUNCEMENTS_PATH = Path('content/announcements.json')
+from autosec_constants import *
 
-COMBINED_CONTENT_PATH = Path('content/content.json')
 
-def main() -> None:
+def main(args: list[str]) -> None:
     '''
     Main function.
 
-    Inserts the JSON defined at `ANNOUNCEMENTS_PATH` into the content given at `COMBINED_CONTENT_PATH`,
+    Inserts the JSON defined at `ANNOUNCEMENTS_FILE` into the content given at `CONTENT_FILE`,
     which also contains definitions of the header, footer, etc.
     '''
 
-    with open(ANNOUNCEMENTS_PATH, 'r') as f:
+    verbose = (bool(args[1]) if len(args)>1 else False)
+
+    with open(ANNOUNCEMENTS_FILE, 'r') as f:
         announcements = json.load(f)
 
-    with open(COMBINED_CONTENT_PATH, 'r') as f:
+    with open(CONTENT_FILE, 'r') as f:
         combined = json.load(f)
 
     combined["announcements"] = announcements['announcements'] 
 
-    with open(COMBINED_CONTENT_PATH, "w", encoding="utf-8") as f:
+    with open(CONTENT_FILE, "w", encoding="utf-8") as f:
         json.dump(combined, f, indent=2, ensure_ascii=False)
 
+    if verbose:
+        print(f'Copied announcements from "{str(ANNOUNCEMENTS_FILE)}" to "{str(CONTENT_FILE)}"\n')
+
 if __name__ == '__main__':
-    main()
+    main(sys.argv)

@@ -2,10 +2,23 @@ import combine
 import outlook 
 import slack
 
-if __name__ == '__main__':
-    with open("auth/tokens.txt", 'r') as f:
-        auth_args = f.read().split("\n")
+import argparse
+import json
 
-    slack.main(['', auth_args[0], auth_args[1]])
-    combine.main()
-    outlook.main(['', auth_args[2]])
+from autosec_constants import TOKEN_FILE
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true', help='Print extra information to the console')
+
+    args = parser.parse_args()
+
+    with open(TOKEN_FILE, 'r') as f:
+        token_args = json.load(f)
+
+
+    slack.main(['', token_args['channel_id'], token_args['bot_token'], args.verbose])
+    combine.main(['', args.verbose])
+    outlook.main(['', token_args['recipient_email'], args.verbose])
