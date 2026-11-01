@@ -1,3 +1,7 @@
+'''
+Scans the Slack channel whose ID is given in `args[1]` using the bot token given in `args[2]`, where `args` is the main function's argument list.
+'''
+
 import json
 from pathlib import Path
 import re
@@ -14,7 +18,9 @@ from autosec_colors import print_color, RED, YELLOW
 
 
 def get_all_pages(method, **kwargs):
-    """Yield individual messages across all API pages."""
+    """
+    Generator that yields individual messages across all API pages.
+    """
     cursor = None
 
     while True:
@@ -83,9 +89,8 @@ def download_images(message, bot_token: str, verbose: bool = False) -> list[str]
         )
 
         if not url:
-            if verbose:
-                print(f"Skipping image without download URL: "
-                    f"{file_info.get('name', 'unknown')}")
+            print_color(f"Skipping image without download URL: "
+                f"{file_info.get('name', 'unknown')}", YELLOW)
             continue
 
         original_name = safe_filename(
@@ -134,7 +139,7 @@ def download_images(message, bot_token: str, verbose: bool = False) -> list[str]
 
 
 def make_announcement(message, bot_token: str):
-    """Convert a Slack message into the requested JSON structure."""
+    """Convert a Slack message into the JSON structure."""
     lines = message.get("text", "").splitlines()
 
     title = lines[0] if lines else ""
@@ -157,7 +162,7 @@ def main(args: list[str]):
 
     SLACK_IMAGE_DIRECTORY.mkdir(parents=True, exist_ok=True)
     if len(args) < 3:
-        print_color(f'Usage for {__file__}: python {__file__} <Slack channel ID> <bot token> <verbose (optional, default=False)>', RED)
+        print_color(f'Usage for {Path(__file__).name}: python {Path(__file__).name} <Slack channel ID> <bot token> <verbose (optional, default=False)>', RED)
         sys.exit(1)
     
     channel_id = args[1]
@@ -165,10 +170,10 @@ def main(args: list[str]):
     verbose = (False if len(args)<4 else bool(args[3]))
 
     if not channel_id.startswith("C"):
-        print_color(f'Channel ID ({channel_id}) is invalid', RED)
+        print_color(f'Channel ID ("{channel_id}") is invalid', RED)
         sys.exit(1)
     if not bot_token.startswith("xoxb-"):
-        print_color(f'Bot token ({bot_token}) is invalid', RED)
+        print_color(f'Bot token ("{bot_token}") is invalid. Bot token should start with "xoxb-"', RED)
         sys.exit(1)
 
     client = WebClient(token=bot_token)
@@ -202,14 +207,14 @@ def main(args: list[str]):
 
         if verbose:
             print(f"Processed {len(announcements)} messages.")
-            print(f"JSON saved to: {ANNOUNCEMENTS_FILE}")
+            print(f"Announcements JSON saved to: {ANNOUNCEMENTS_FILE}")
             print(f"Images saved to: {SLACK_IMAGE_DIRECTORY.resolve()}\n")
 
     except SlackApiError as exc:
-        print_color("Slack API error:", exc.response.get("error"), RED)
-        print_color("    Needed scope:", exc.response.get("needed"), RED)
-        print_color("    Granted scopes:", exc.response.get("provided"), RED)
-        print_color("    Bot token used: ", RED)
+        print_color(f"Slack API error: {str(exc.response.get('error'))}", RED)
+        print_color(f'    Needed scope:   {str(exc.response.get("needed"))}', RED)
+        print_color(f"    Granted scopes: {str(exc.response.get("provided"))}", RED)
+        print_color(f"    Bot token used: {bot_token}", RED)
         sys.exit(1)
 
 

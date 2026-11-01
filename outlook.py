@@ -1,3 +1,9 @@
+'''
+Converts email content defined in a JSON file into email HTML, then sends the email to a selected recipient.
+
+The email content is defined in `autosec_constants.EMAIL_CONTENT_FILE`. The recipient is given as `args[1]` in the main function's argument list.
+'''
+
 from pathlib import Path
 import win32com.client as win32
 import json
@@ -7,6 +13,67 @@ import sys
 
 from autosec_constants import *
 from autosec_colors import print_color, RED
+
+
+def check_email_contents(contents: dict) -> None:
+    '''
+    Checks all fields in `contents`. If a required field in `contents` is missing, throws a KeyError.
+
+    Does not check for announcements.
+
+    Args:
+        contents (dict): email content dict to check
+    '''
+
+    try:
+        email = contents['email']
+        header = contents['header']
+        footer = contents['footer']
+    except KeyError as e:
+        raise KeyError(f'''Section "{str(e)[1:-1]}" is missing''')
+
+    try:
+        subject = email["subject"]
+    except KeyError as e:
+        raise KeyError(f'''Field "{str(e)[1:-1]}" in "email" section is missing''')
+
+    try:
+        title = header["title"]
+        text = header["text"]
+    except KeyError as e:
+        raise KeyError(f'''Field "{str(e)[1:-1]}" in "header" section is missing''')
+
+    try:
+        text = footer["text"]
+        images = footer["images"]
+    except KeyError as e:
+        raise KeyError(f'''Field "{str(e)[1:-1]}" in "footer" section is missing''')
+
+    for image in images:
+        assert isinstance(image, dict), 'Images in "footer" section must be dicts'
+        try:
+            img = image["image"]
+            link = image["link"]
+        except KeyError as e:
+            raise KeyError(f'''Subfield "{str(e)[1:-1]}" in "images" section is missing''')
+
+
+
+def valid_email_syntax(address: str):
+    '''
+    Returns whether `address` is in the format of a valid email address.
+
+    Args:
+        address (str): email address to check
+    Returns:
+        bool: whether `address` is valid
+    '''
+
+    # re.fullmatch ensures the entire string conforms to the pattern
+    if re.fullmatch(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", address):
+        return True
+    return False
+
 
 
 def generate_image(
@@ -219,10 +286,13 @@ def main(args: list[str]) -> None:
     """
     Main function
 
-    args[1] = mail receipient, args[2] (optional, default=False) = verbose option
+    args[1] = mail recipient, args[2] (optional, default=False) = verbose option
     """
     if len(args) < 2:
-        print_color(f"Usage for {__file__}: python {__file__} <mail recipient's email> <verbose (optional, default=False)>", RED)
+        print_color(f"Usage for {Path(__file__).name}: python {Path(__file__).name} <mail recipient's email> <verbose (optional, default=False)>", RED)
+        sys.exit(1)
+    if not valid_email_syntax(args[1]):
+        print_color(f'Recipient email address "{args[1]}" is not a valid email', RED)
         sys.exit(1)
 
     verbose = (bool(args[2]) if len(args)>2 else False)
@@ -233,17 +303,27 @@ def main(args: list[str]) -> None:
     # Create a new mail item (0 represents an olMailItem)
     mail = outlook.CreateItem(0)
 
-    with open(CONTENT_FILE, 'r', encoding='utf-8') as file:
-        data = json.load(file) 
+    mail_contents = dict()
+    
+    with open(EMAIL_CONTENT_FILE, 'r', encoding='utf-8') as file:
+        mail_contents = json.load(file) 
+
+    # Check for all required fields
+    try:
+        check_email_contents(mail_contents)
+    except KeyError as e:
+        print_color(f'In email contents: {str(e)[1:-1]}', RED)
+        sys.exit(1)
+
 
     # Set the recipients and subject
     mail.To = args[1]
-    mail.Subject = data["email"]["subject"]
+    mail.Subject = mail_contents["email"]["subject"]
 
 
     mail_html = "<html>\n<body>"
 
-    mail_html += generate_header(data["header"])
+    mail_html += generate_header(mail_contents["header"])
 
     if verbose:
         print('Email header generated')
@@ -252,7 +332,7 @@ def main(args: list[str]) -> None:
     mail_html += generate_image(IMAGE_DIRECTORY / "events.png", mail, width=450)
     mail_html += DIVIDER
 
-    for announcement in data["announcements"]:
+    for announcement in mail_contents["announcements"]:
         mail_html += generate_announcement(announcement, mail)
         mail_html += DIVIDER
 
@@ -260,7 +340,7 @@ def main(args: list[str]) -> None:
             print(f"""Added announcement "{announcement['title']}" """)
 
     # Footer
-    mail_html += generate_footer(data["footer"])
+    mail_html += generate_footer(mail_contents["footer"])
     mail_html += "\n</body>\n</html>"
 
     if verbose:

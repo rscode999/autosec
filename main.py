@@ -8,7 +8,6 @@ import json
 from autosec_constants import TOKEN_FILE
 
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true', help='Print extra information to the console')
