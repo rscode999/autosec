@@ -35,10 +35,19 @@ python -m pip install pywin32 requests slack_sdk
 #### Creating a Slack Bot
 
 1. Go to the [Slack API dashboard](https://api.slack.com/apps).
-2. If the bot `autosec` is not already there, select "Create New App". Otherwise, you may skip the remaining bot assignment steps.
-3. Select "Starter App", then "Continue".
-4. Name the bot something you want. Select the workspace where you intend to use AutoSec. Continue to "Review App".
-5. Under "Configurations", click "Edit Permissions". To the bot's Bot Token Scopes, add the permissions `channels:history`, `channels:read`, `chat:write`, `commands`, `files:read`, `groups:history`, and `groups:read`. Continue to "Create and Install", then authorize your bot to access Slack.
+2. If the bot `autosec` is already there,  you may skip the remaining bot assignment steps. Otherwise, 
+3. Select "Create New App".
+4. Select "Starter App", then "Continue".
+5. Name the bot something you want. Select the workspace where you intend to use AutoSec. Continue to "Review App".
+6. Under "Configurations", click "Edit Permissions". To the bot's Bot Token Scopes, add the permissions `channels:history`, `channels:read`, `chat:write`, `commands`, `files:read`, `groups:history`, and `groups:read`. Continue to "Create and Install", then authorize your bot to access Slack.
+
+#### Adding Slack Bot to Channel
+
+1. Open the Slack app and select the channel containing the announcements.
+2. Click the 3 dots in the upper right corner, then go to "Channel details" -> "Open channel details".
+3. Under the "Agents & apps" tab, check if the `autosec` bot is there. If so, skip the remaining steps to add the bot.
+4. Select "Add agents and apps".
+5. Search for your newly created bot, then add it to the channel.
 
 #### Assigning Slack Bot Token
 
